@@ -69,28 +69,32 @@ This project was built as a **Computer Graphics sessional lab project**. It allo
 
 ### Midpoint Circle Drawing Algorithm
 
-![Midpoint Circle Drawing Algorithm UI](<img width="1578" height="860" alt="Screenshot 2026-03-31 024154" src="https://github.com/user-attachments/assets/c2e0568a-62d2-4c36-bfd2-3a7ca38f3b2d" />
-)
+<img width="1578" height="860" alt="Screenshot 2026-03-31 024154" src="https://github.com/user-attachments/assets/c2e0568a-62d2-4c36-bfd2-3a7ca38f3b2d" />
+
 
 ### Boundary Fill Algorithm
 
-![Boundary Fill Algorithm UI](a4cde98a-88f7-4c79-8cd7-0c8ad2981155.png)
+<img width="1860" height="911" alt="Screenshot 2026-03-31 024224" src="https://github.com/user-attachments/assets/a0a49d42-f3eb-4faa-96a0-a86508196274" />
+
 
 ### Translation
 
-![Translation UI](3433fb78-0b48-40d8-8f97-1853a06f47ee.png)
+<img width="1870" height="914" alt="Screenshot 2026-03-31 024305" src="https://github.com/user-attachments/assets/b240e424-0662-48ab-8d28-e45010685d2c" />
 
 ### Cohen–Sutherland Line Clipping Algorithm
 
-![Cohen–Sutherland Line Clipping Algorithm UI](f7efae78-080f-4db4-8b4d-b2b84a5ec60a.png)
+<img width="1806" height="927" alt="Screenshot 2026-03-31 024326" src="https://github.com/user-attachments/assets/75abd3c7-b640-40d2-8729-680b59378424" />
+
 
 ### Sutherland–Hodgman Polygon Clipping Algorithm
 
-![Sutherland–Hodgman Polygon Clipping Algorithm UI](fa9eeff4-545d-4249-a27b-7aa603bfbf70.png)
+<img width="1833" height="931" alt="Screenshot 2026-03-31 024351" src="https://github.com/user-attachments/assets/9dc36696-e902-49d6-a350-550a8d93edd8" />
+
 
 ### Back-Face Culling
 
-![Back-Face Culling UI](c9f3710d-ea68-4df7-a82c-1d027629a879.png)
+<img width="1876" height="868" alt="Screenshot 2026-03-31 024439" src="https://github.com/user-attachments/assets/b44894d7-cc34-41b5-afbd-b6b5bd091ed5" />
+
 
 ## How to Run
 
