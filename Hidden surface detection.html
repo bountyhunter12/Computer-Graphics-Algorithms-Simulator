@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Computer Graphics Algorithms Simulator</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --panel: #0f172a;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --border: #334155;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #020617, #0b1220 40%, #0f172a 100%);
+      color: var(--text);
+    }
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+    .panel, .stage {
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    .panel {
+      padding: 16px;
+      overflow: auto;
+    }
+    .stage {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+    }
+    .subtitle {
+      margin: 0 0 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+    .block {
+      background: rgba(17, 24, 39, .9);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .block h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #fff;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    select, input, textarea, button {
+      width: 100%;
+      background: #071120;
+      border: 1px solid #475569;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 14px;
+    }
+    textarea { min-height: 92px; resize: vertical; }
+    button {
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      color: #00131c;
+      background: linear-gradient(90deg, var(--accent), #60a5fa);
+      transition: transform .15s ease, opacity .15s ease;
+    }
+    button:hover { transform: translateY(-1px); opacity: .96; }
+    .secondary { background: linear-gradient(90deg, #64748b, #94a3b8); }
+    .success { background: linear-gradient(90deg, var(--accent-2), #4ade80); }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(56,189,248,.3);
+      background: rgba(56,189,248,.12);
+      color: #7dd3fc;
+      font-size: 12px;
+    }
+    .legend, .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .mono { font-family: Consolas, monospace; }
+    canvas {
+      width: 100%;
+      height: calc(100vh - 120px);
+      min-height: 680px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      image-rendering: pixelated;
+    }
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      canvas { height: 720px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <h1>Computer Graphics Algorithms Simulator</h1>
+      <p class="subtitle">
+        Single-page final demonstration project with dropdown selection for all required algorithms.
+        Hidden-surface modules are animated and rendered much larger now.
+      </p>
+
+      <div class="block">
+        <h3>Main Selection</h3>
+        <label>Category</label>
+        <select id="category"></select>
+        <div style="height:10px"></div>
+        <label>Algorithm</label>
+        <select id="algorithm"></select>
+      </div>
+
+      <div class="block">
+        <h3>Algorithm Controls</h3>
+        <div id="controls"></div>
+      </div>
+
+      <div class="block">
+        <h3>Instructions</h3>
+        <div id="info" class="hint"></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="toolbar">
+        <span class="badge" id="statusBadge">Ready</span>
+        <div class="legend">For hidden-surface algorithms, press Apply to start animation. Press Clear to stop it.</div>
+      </div>
+      <canvas id="canvas" width="1400" height="900"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const categorySelect = document.getElementById('category');
+    const algorithmSelect = document.getElementById('algorithm');
+    const controls = document.getElementById('controls');
+    const info = document.getElementById('info');
+    const statusBadge = document.getElementById('statusBadge');
+
+    const GRID = 10;
+    let animationId = null;
+    let animationAngle = 0;
+
+    const config = {
+      'Line Drawing Algorithms': [
+        'DDA Line Drawing Algorithm',
+        'Bresenham Line Drawing Algorithm'
+      ],
+      'Circle Drawing Algorithm': [
+        'Midpoint Circle Drawing Algorithm'
+      ],
+      'Polygon Filling Algorithms': [
+        'Boundary Fill Algorithm',
+        'Flood Fill Algorithm'
+      ],
+      'Basic 2D Transformations': [
+        'Translation',
+        'Scaling',
+        'Rotation',
+        'Shearing',
+        'Reflection'
+      ],
+      'Clipping Algorithms': [
+        'Cohen–Sutherland Line Clipping Algorithm',
+        'Sutherland–Hodgman Polygon Clipping Algorithm'
+      ],
+      'Hidden Surface Detection Algorithms': [
+        'Back-Face Culling',
+        'Z-Buffer Algorithm',
+        "Painter's Algorithm"
+      ]
+    };
+
+    const helpText = {
+      'DDA Line Drawing Algorithm': 'Draws a line using incremental floating-point steps.',
+      'Bresenham Line Drawing Algorithm': 'Draws a line using integer decision parameters.',
+      'Midpoint Circle Drawing Algorithm': 'Draws a circle using midpoint decision values and 8-way symmetry.',
+      'Boundary Fill Algorithm': 'Draw the polygon first, then fill starts automatically from a valid interior seed point.',
+      'Flood Fill Algorithm': 'Draw the polygon first, then fill starts automatically from a valid interior seed point.',
+      'Translation': 'Moves the object by tx and ty.',
+      'Scaling': 'Scales the object around its centroid.',
+      'Rotation': 'Rotates the object around its centroid.',
+      'Shearing': 'Applies x-shear and y-shear to the object.',
+      'Reflection': 'Reflects the object across x-axis, y-axis, origin, or line y = x.',
+      'Cohen–Sutherland Line Clipping Algorithm': 'Clips a line against a rectangular window using region codes.',
+      'Sutherland–Hodgman Polygon Clipping Algorithm': 'Clips a polygon against a rectangular clipping window.',
+      'Back-Face Culling': 'Animated rotating cube. Back-facing surfaces are removed and visible faces are shown at a larger size.',
+      'Z-Buffer Algorithm': 'Animated depth-buffer rendering using a large cube and a larger rendering area.',
+      "Painter's Algorithm": 'Animated polygon sorting from farthest to nearest with a larger object.'
+    };
+
+    function setStatus(text) {
+      statusBadge.textContent = text;
+    }
+
+    function stopAnimation() {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+    }
+
+    function resetView() {
+      stopAnimation();
+      clearCanvas();
+      setStatus('Ready');
+    }
+
+    function drawGrid() {
+      ctx.save();
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= canvas.width; x += GRID) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= canvas.height; y += GRID) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function plot(x, y, color = '#111827') {
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.round(x) * GRID, Math.round(y) * GRID, GRID, GRID);
+    }
+
+    function drawAxes() {
+      const cx = Math.floor(canvas.width / (2 * GRID));
+      const cy = Math.floor(canvas.height / (2 * GRID));
+      for (let x = 0; x < canvas.width / GRID; x++) plot(x, cy, '#cbd5e1');
+      for (let y = 0; y < canvas.height / GRID; y++) plot(cx, y, '#cbd5e1');
+    }
+
+    function getInputNumber(id, fallback = 0) {
+      const el = document.getElementById(id);
+      return el ? Number(el.value) : fallback;
+    }
+
+    function getPointsFromText(text) {
+      return text
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(pair => pair.split(',').map(Number))
+        .filter(arr => arr.length === 2 && arr.every(v => !Number.isNaN(v)));
+    }
+
+    function drawPolyline(points, color = '#0f172a', close = true) {
+      if (!points.length) return;
+      for (let i = 0; i < points.length - 1; i++) {
+        bresenham(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], color);
+      }
+      if (close && points.length > 2) {
+        bresenham(points[points.length - 1][0], points[points.length - 1][1], points[0][0], points[0][1], color);
+      }
+    }
+
+    function dda(x1, y1, x2, y2, color = '#0f172a') {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      const xInc = dx / steps;
+      const yInc = dy / steps;
+      let x = x1;
+      let y = y1;
+      for (let i = 0; i <= steps; i++) {
+        plot(Math.round(x), Math.round(y), color);
+        x += xInc;
+        y += yInc;
+      }
+    }
+
+    function bresenham(x1, y1, x2, y2, color = '#0f172a') {
+      x1 = Math.round(x1);
+      y1 = Math.round(y1);
+      x2 = Math.round(x2);
+      y2 = Math.round(y2);
+      const dx = Math.abs(x2 - x1);
+      const dy = Math.abs(y2 - y1);
+      const sx = x1 < x2 ? 1 : -1;
+      const sy = y1 < y2 ? 1 : -1;
+      let err = dx - dy;
+      while (true) {
+        plot(x1, y1, color);
+        if (x1 === x2 && y1 === y2) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x1 += sx; }
+        if (e2 < dx) { err += dx; y1 += sy; }
+      }
+    }
+
+    function midpointCircle(xc, yc, r, color = '#0f172a') {
+      let x = 0;
+      let y = r;
+      let p = 1 - r;
+      circleSymmetry(xc, yc, x, y, color);
+      while (x < y) {
+        x++;
+        if (p < 0) {
+          p += 2 * x + 1;
+        } else {
+          y--;
+          p += 2 * (x - y) + 1;
+        }
+        circleSymmetry(xc, yc, x, y, color);
+      }
+    }
+
+    function circleSymmetry(xc, yc, x, y, color) {
+      [[x, y], [y, x], [-x, y], [-y, x], [x, -y], [y, -x], [-x, -y], [-y, -x]].forEach(([px, py]) => {
+        plot(xc + px, yc + py, color);
+      });
+    }
+
+    function getCellColor(x, y) {
+      const px = x * GRID + Math.floor(GRID / 2);
+      const py = y * GRID + Math.floor(GRID / 2);
+      const d = ctx.getImageData(px, py, 1, 1).data;
+      return `rgba(${d[0]},${d[1]},${d[2]},${d[3]})`;
+    }
+
+    function hexToRgba(hex) {
+      const c = hex.replace('#', '');
+      const bigint = parseInt(c, 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r},${g},${b},255)`;
+    }
+
+    function boundaryFill(seedX, seedY, fillColor = '#22c55e', boundaryColor = 'rgba(15,23,42,255)') {
+      const targetFill = hexToRgba(fillColor);
+      const stack = [[seedX, seedY]];
+      const visited = new Set();
+      while (stack.length) {
+        const [x, y] = stack.pop();
+        const key = `${x},${y}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+        if (x < 0 || y < 0 || x >= canvas.width / GRID || y >= canvas.height / GRID) continue;
+        const current = getCellColor(x, y);
+        if (current !== boundaryColor && current !== targetFill) {
+          plot(x, y, fillColor);
+          stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+        }
+      }
+    }
+
+    function floodFill(seedX, seedY, fillColor = '#38bdf8') {
+      const targetColor = getCellColor(seedX, seedY);
+      const targetFill = hexToRgba(fillColor);
+      if (targetColor === targetFill) return;
+      const stack = [[seedX, seedY]];
+      const visited = new Set();
+      while (stack.length) {
+        const [x, y] = stack.pop();
+        const key = `${x},${y}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+        if (x < 0 || y < 0 || x >= canvas.width / GRID || y >= canvas.height / GRID) continue;
+        const current = getCellColor(x, y);
+        if (current === targetColor) {
+          plot(x, y, fillColor);
+          stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+        }
+      }
+    }
+
+    function centroid(points) {
+      const sum = points.reduce((acc, [x, y]) => [acc[0] + x, acc[1] + y], [0, 0]);
+      return [sum[0] / points.length, sum[1] / points.length];
+    }
+
+    function transformPoints(points, mode, params) {
+      const [cx, cy] = centroid(points);
+      return points.map(([x, y]) => {
+        let px = x - cx;
+        let py = y - cy;
+        let nx = px;
+        let ny = py;
+
+        if (mode === 'Translation') return [x + params.tx, y + params.ty];
+        if (mode === 'Scaling') {
+          nx = px * params.sx;
+          ny = py * params.sy;
+        } else if (mode === 'Rotation') {
+          const rad = params.angle * Math.PI / 180;
+          nx = px * Math.cos(rad) - py * Math.sin(rad);
+          ny = px * Math.sin(rad) + py * Math.cos(rad);
+        } else if (mode === 'Shearing') {
+          nx = px + params.shx * py;
+          ny = py + params.shy * px;
+        } else if (mode === 'Reflection') {
+          if (params.axis === 'x') { nx = px; ny = -py; }
+          if (params.axis === 'y') { nx = -px; ny = py; }
+          if (params.axis === 'origin') { nx = -px; ny = -py; }
+          if (params.axis === 'y=x') { nx = py; ny = px; }
+        }
+        return [nx + cx, ny + cy];
+      });
+    }
+
+    function averagePoint(points) {
+      const [sx, sy] = points.reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0]);
+      return [Math.round(sx / points.length), Math.round(sy / points.length)];
+    }
+
+    function pointInPolygon(x, y, points) {
+      let inside = false;
+      for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+        const xi = points[i][0], yi = points[i][1];
+        const xj = points[j][0], yj = points[j][1];
+        const intersect = ((yi > y) !== (yj > y)) &&
+          (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-9) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function findInteriorSeed(points) {
+      const [cx, cy] = averagePoint(points);
+      if (pointInPolygon(cx, cy, points)) return [cx, cy];
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      points.forEach(([x, y]) => {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      });
+      for (let y = Math.ceil(minY); y <= Math.floor(maxY); y++) {
+        for (let x = Math.ceil(minX); x <= Math.floor(maxX); x++) {
+          if (pointInPolygon(x, y, points)) return [x, y];
+        }
+      }
+      return [cx, cy];
+    }
+
+    const INSIDE = 0, LEFT = 1, RIGHT = 2, BOTTOM = 4, TOP = 8;
+
+    function computeOutCode(x, y, rect) {
+      let code = INSIDE;
+      if (x < rect.xmin) code |= LEFT;
+      else if (x > rect.xmax) code |= RIGHT;
+      if (y < rect.ymin) code |= TOP;
+      else if (y > rect.ymax) code |= BOTTOM;
+      return code;
+    }
+
+    function cohenSutherland(x1, y1, x2, y2, rect) {
+      let out1 = computeOutCode(x1, y1, rect);
+      let out2 = computeOutCode(x2, y2, rect);
+      let accept = false;
+      while (true) {
+        if (!(out1 | out2)) {
+          accept = true;
+          break;
+        } else if (out1 & out2) {
+          break;
+        } else {
+          let x, y;
+          const out = out1 ? out1 : out2;
+          if (out & TOP) {
+            x = x1 + (x2 - x1) * (rect.ymin - y1) / (y2 - y1);
+            y = rect.ymin;
+          } else if (out & BOTTOM) {
+            x = x1 + (x2 - x1) * (rect.ymax - y1) / (y2 - y1);
+            y = rect.ymax;
+          } else if (out & RIGHT) {
+            y = y1 + (y2 - y1) * (rect.xmax - x1) / (x2 - x1);
+            x = rect.xmax;
+          } else {
+            y = y1 + (y2 - y1) * (rect.xmin - x1) / (x2 - x1);
+            x = rect.xmin;
+          }
+          if (out === out1) {
+            x1 = x; y1 = y; out1 = computeOutCode(x1, y1, rect);
+          } else {
+            x2 = x; y2 = y; out2 = computeOutCode(x2, y2, rect);
+          }
+        }
+      }
+      return accept ? [[x1, y1], [x2, y2]] : null;
+    }
+
+    function intersectVertical([x1, y1], [x2, y2], x) {
+      const t = (x - x1) / (x2 - x1);
+      return [x, y1 + t * (y2 - y1)];
+    }
+
+    function intersectHorizontal([x1, y1], [x2, y2], y) {
+      const t = (y - y1) / (y2 - y1);
+      return [x1 + t * (x2 - x1), y];
+    }
+
+    function sutherlandHodgman(subjectPolygon, clipRect) {
+      let outputList = subjectPolygon;
+      const edges = [
+        { inside: p => p[0] >= clipRect.xmin, intersect: (s, e) => intersectVertical(s, e, clipRect.xmin) },
+        { inside: p => p[0] <= clipRect.xmax, intersect: (s, e) => intersectVertical(s, e, clipRect.xmax) },
+        { inside: p => p[1] >= clipRect.ymin, intersect: (s, e) => intersectHorizontal(s, e, clipRect.ymin) },
+        { inside: p => p[1] <= clipRect.ymax, intersect: (s, e) => intersectHorizontal(s, e, clipRect.ymax) }
+      ];
+      for (const edge of edges) {
+        const inputList = outputList;
+        outputList = [];
+        for (let i = 0; i < inputList.length; i++) {
+          const S = inputList[i];
+          const E = inputList[(i + 1) % inputList.length];
+          const Sin = edge.inside(S);
+          const Ein = edge.inside(E);
+          if (Sin && Ein) outputList.push(E);
+          else if (Sin && !Ein) outputList.push(edge.intersect(S, E));
+          else if (!Sin && Ein) {
+            outputList.push(edge.intersect(S, E));
+            outputList.push(E);
+          }
+        }
+      }
+      return outputList;
+    }
+
+    function drawClipWindow(rect) {
+      ctx.save();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rect.xmin * GRID, rect.ymin * GRID, (rect.xmax - rect.xmin) * GRID, (rect.ymax - rect.ymin) * GRID);
+      ctx.restore();
+    }
+
+    function rotatePoint([x, y, z], ax, ay) {
+      const rx = ax * Math.PI / 180;
+      const ry = ay * Math.PI / 180;
+      let ny = y * Math.cos(rx) - z * Math.sin(rx);
+      let nz = y * Math.sin(rx) + z * Math.cos(rx);
+      y = ny;
+      z = nz;
+      let nx = x * Math.cos(ry) + z * Math.sin(ry);
+      nz = -x * Math.sin(ry) + z * Math.cos(ry);
+      x = nx;
+      return [x, y, nz + 9];
+    }
+
+    function project3D([x, y, z]) {
+      const d = 4;
+      const scale = 300;
+      const px = (x / (z + d)) * scale + canvas.width / 2;
+      const py = (-y / (z + d)) * scale + canvas.height / 2;
+      return [px, py, z];
+    }
+
+    function cubeFaces() {
+      const s = 2.8;
+      const v = [
+        [-s, -s, -s], [s, -s, -s], [s, s, -s], [-s, s, -s],
+        [-s, -s, s], [s, -s, s], [s, s, s], [-s, s, s]
+      ];
+      return [
+        [v[0], v[1], v[2]], [v[0], v[2], v[3]],
+        [v[4], v[5], v[6]], [v[4], v[6], v[7]],
+        [v[0], v[1], v[5]], [v[0], v[5], v[4]],
+        [v[2], v[3], v[7]], [v[2], v[7], v[6]],
+        [v[1], v[2], v[6]], [v[1], v[6], v[5]],
+        [v[0], v[3], v[7]], [v[0], v[7], v[4]]
+      ];
+    }
+
+    function faceNormal(face) {
+      const [a, b, c] = face;
+      const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+      const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+      return [
+        u[1] * v[2] - u[2] * v[1],
+        u[2] * v[0] - u[0] * v[2],
+        u[0] * v[1] - u[1] * v[0]
+      ];
+    }
+
+    function drawProjectedFace(points, fill, stroke) {
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2.4;
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function renderBackFaceCulling(ax, ay) {
+      clearCanvas();
+      const faces = cubeFaces().map(face => face.map(p => rotatePoint(p, ax, ay)));
+      faces.forEach(face => {
+        const n = faceNormal(face);
+        if (n[2] < 0) {
+          drawProjectedFace(face.map(project3D), 'rgba(56, 189, 248, 0.78)', '#075985');
+        }
+      });
+      setStatus('Back-Face Culling running');
+    }
+
+    function renderPainter(ax, ay) {
+      clearCanvas();
+      const faces = cubeFaces().map(face => face.map(p => rotatePoint(p, ax, ay)));
+      const projFaces = faces.map(face => ({
+        depth: face.reduce((sum, p) => sum + p[2], 0) / face.length,
+        pts: face.map(project3D)
+      })).sort((a, b) => b.depth - a.depth);
+
+      const fills = [
+        'rgba(239,68,68,0.72)',
+        'rgba(34,197,94,0.72)',
+        'rgba(59,130,246,0.72)',
+        'rgba(250,204,21,0.72)',
+        'rgba(168,85,247,0.72)',
+        'rgba(14,165,233,0.72)'
+      ];
+
+      projFaces.forEach((f, i) => drawProjectedFace(f.pts, fills[i % fills.length], '#0f172a'));
+      setStatus("Painter's Algorithm running");
+    }
+
+    function barycentric(px, py, a, b, c) {
+      const det = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+      const l1 = ((b[1] - c[1]) * (px - c[0]) + (c[0] - b[0]) * (py - c[1])) / det;
+      const l2 = ((c[1] - a[1]) * (px - c[0]) + (a[0] - c[0]) * (py - c[1])) / det;
+      const l3 = 1 - l1 - l2;
+      return [l1, l2, l3];
+    }
+
+    function renderZBuffer(ax, ay) {
+      clearCanvas();
+      const off = document.createElement('canvas');
+      off.width = 700;
+      off.height = 500;
+      const octx = off.getContext('2d');
+      const zbuf = Array.from({ length: off.width * off.height }, () => Infinity);
+      const img = octx.createImageData(off.width, off.height);
+      const faces = cubeFaces().map(face => face.map(p => rotatePoint(p, ax, ay)));
+      const colors = [
+        [239,68,68], [34,197,94], [59,130,246], [250,204,21], [168,85,247], [14,165,233],
+        [239,68,68], [34,197,94], [59,130,246], [250,204,21], [168,85,247], [14,165,233]
+      ];
+
+      faces.forEach((face, idx) => {
+        const pts = face.map(project3D).map(([x, y, z]) => [x * off.width / canvas.width, y * off.height / canvas.height, z]);
+        const xs = pts.map(p => p[0]);
+        const ys = pts.map(p => p[1]);
+        const minX = Math.max(0, Math.floor(Math.min(...xs)));
+        const maxX = Math.min(off.width - 1, Math.ceil(Math.max(...xs)));
+        const minY = Math.max(0, Math.floor(Math.min(...ys)));
+        const maxY = Math.min(off.height - 1, Math.ceil(Math.max(...ys)));
+
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            const [l1, l2, l3] = barycentric(x + 0.5, y + 0.5, pts[0], pts[1], pts[2]);
+            if (l1 >= 0 && l2 >= 0 && l3 >= 0) {
+              const z = l1 * pts[0][2] + l2 * pts[1][2] + l3 * pts[2][2];
+              const index = y * off.width + x;
+              if (z < zbuf[index]) {
+                zbuf[index] = z;
+                const base = index * 4;
+                img.data[base] = colors[idx][0];
+                img.data[base + 1] = colors[idx][1];
+                img.data[base + 2] = colors[idx][2];
+                img.data[base + 3] = 255;
+              }
+            }
+          }
+        }
+      });
+
+      octx.putImageData(img, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(off, 80, 60, canvas.width - 160, canvas.height - 120);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(80, 60, canvas.width - 160, canvas.height - 120);
+      setStatus('Z-Buffer Algorithm running');
+    }
+
+    function startHiddenSurfaceAnimation(algo, ax, ay) {
+      stopAnimation();
+      animationAngle = 0;
+      function frame() {
+        animationAngle += 1.4;
+        const rx = ax + Math.sin(animationAngle * Math.PI / 180) * 14;
+        const ry = ay + animationAngle;
+        if (algo === 'Back-Face Culling') renderBackFaceCulling(rx, ry);
+        else if (algo === 'Z-Buffer Algorithm') renderZBuffer(rx, ry);
+        else renderPainter(rx, ry);
+        animationId = requestAnimationFrame(frame);
+      }
+      frame();
+    }
+
+    function runCurrent() {
+      stopAnimation();
+      clearCanvas();
+      const category = categorySelect.value;
+      const algo = algorithmSelect.value;
+
+      if (category === 'Line Drawing Algorithms') {
+        const x1 = getInputNumber('x1');
+        const y1 = getInputNumber('y1');
+        const x2 = getInputNumber('x2');
+        const y2 = getInputNumber('y2');
+        if (algo.includes('DDA')) dda(x1, y1, x2, y2, '#0f172a');
+        else bresenham(x1, y1, x2, y2, '#0f172a');
+        setStatus(algo + ' executed');
+      }
+
+      else if (category === 'Circle Drawing Algorithm') {
+        midpointCircle(getInputNumber('xc'), getInputNumber('yc'), getInputNumber('r'), '#0f172a');
+        setStatus(algo + ' executed');
+      }
+
+      else if (category === 'Polygon Filling Algorithms') {
+        const pts = getPointsFromText(document.getElementById('polyPts').value);
+        drawPolyline(pts, '#0f172a', true);
+        const [seedX, seedY] = findInteriorSeed(pts);
+        plot(seedX, seedY, '#f59e0b');
+        if (algo === 'Boundary Fill Algorithm') {
+          boundaryFill(seedX, seedY, '#22c55e');
+          setStatus('Boundary Fill Algorithm executed');
+        } else {
+          floodFill(seedX, seedY, '#38bdf8');
+          setStatus('Flood Fill Algorithm executed');
+        }
+      }
+
+      else if (category === 'Basic 2D Transformations') {
+        drawAxes();
+        const pts = getPointsFromText(document.getElementById('shapePts').value);
+        const params = {
+          tx: getInputNumber('tx'),
+          ty: getInputNumber('ty'),
+          sx: getInputNumber('sx', 1),
+          sy: getInputNumber('sy', 1),
+          angle: getInputNumber('angle'),
+          shx: getInputNumber('shx'),
+          shy: getInputNumber('shy'),
+          axis: document.getElementById('axis')?.value || 'x'
+        };
+        const result = transformPoints(pts, algo, params);
+        drawPolyline(pts, '#2563eb', true);
+        drawPolyline(result, '#16a34a', true);
+        pts.forEach(p => plot(p[0], p[1], '#2563eb'));
+        result.forEach(p => plot(p[0], p[1], '#16a34a'));
+        setStatus(algo + ': blue = original, green = transformed');
+      }
+
+      else if (category === 'Clipping Algorithms') {
+        const [xmin, ymin, xmax, ymax] = document.getElementById('clipRect').value.split(',').map(Number);
+        const rect = { xmin, ymin, xmax, ymax };
+        drawClipWindow(rect);
+        if (algo.includes('Cohen')) {
+          const x1 = getInputNumber('x1');
+          const y1 = getInputNumber('y1');
+          const x2 = getInputNumber('x2');
+          const y2 = getInputNumber('y2');
+          dda(x1, y1, x2, y2, '#94a3b8');
+          const clipped = cohenSutherland(x1, y1, x2, y2, rect);
+          if (clipped) {
+            bresenham(clipped[0][0], clipped[0][1], clipped[1][0], clipped[1][1], '#16a34a');
+            setStatus('Gray = original, green = clipped');
+          } else {
+            setStatus('Line rejected completely');
+          }
+        } else {
+          const pts = getPointsFromText(document.getElementById('polyPts').value);
+          drawPolyline(pts, '#94a3b8', true);
+          const clipped = sutherlandHodgman(pts, rect);
+          if (clipped.length) {
+            drawPolyline(clipped, '#16a34a', true);
+            setStatus('Gray = original, green = clipped polygon');
+          } else {
+            setStatus('Polygon fully outside window');
+          }
+        }
+      }
+
+      else if (category === 'Hidden Surface Detection Algorithms') {
+        const ax = getInputNumber('ax');
+        const ay = getInputNumber('ay');
+        startHiddenSurfaceAnimation(algo, ax, ay);
+      }
+    }
+
+    function renderControls() {
+      stopAnimation();
+      clearCanvas();
+      const category = categorySelect.value;
+      const algo = algorithmSelect.value;
+      info.textContent = helpText[algo] || 'Select an algorithm.';
+
+      if (category === 'Line Drawing Algorithms') {
+        controls.innerHTML = `
+          <div class="row">
+            <div><label>x1</label><input id="x1" type="number" value="5"></div>
+            <div><label>y1</label><input id="y1" type="number" value="5"></div>
+          </div>
+          <div class="row">
+            <div><label>x2</label><input id="x2" type="number" value="70"></div>
+            <div><label>y2</label><input id="y2" type="number" value="40"></div>
+          </div>
+          <div class="row">
+            <div><button onclick="runCurrent()">Apply</button></div>
+            <div><button class="secondary" onclick="resetView()">Clear</button></div>
+          </div>`;
+      }
+
+      else if (category === 'Circle Drawing Algorithm') {
+        controls.innerHTML = `
+          <div class="row">
+            <div><label>Center x</label><input id="xc" type="number" value="45"></div>
+            <div><label>Center y</label><input id="yc" type="number" value="28"></div>
+          </div>
+          <div class="row">
+            <div><label>Radius</label><input id="r" type="number" value="20"></div>
+            <div><label>&nbsp;</label><button onclick="runCurrent()">Apply</button></div>
+          </div>
+          <button class="secondary" onclick="resetView()">Clear</button>`;
+      }
+
+      else if (category === 'Polygon Filling Algorithms') {
+        controls.innerHTML = `
+          <label>Polygon points (x,y; x,y; x,y)</label>
+          <textarea id="polyPts">15,12; 45,10; 62,25; 50,45; 22,42; 10,25</textarea>
+          <div class="row">
+            <div><button onclick="runCurrent()">Apply</button></div>
+            <div><button class="secondary" onclick="resetView()">Clear</button></div>
+          </div>`;
+      }
+
+      else if (category === 'Basic 2D Transformations') {
+        let extra = '';
+        if (algo === 'Translation') {
+          extra = `
+            <div class="row">
+              <div><label>tx</label><input id="tx" type="number" value="12"></div>
+              <div><label>ty</label><input id="ty" type="number" value="8"></div>
+            </div>`;
+        } else if (algo === 'Scaling') {
+          extra = `
+            <div class="row">
+              <div><label>sx</label><input id="sx" type="number" step="0.1" value="1.5"></div>
+              <div><label>sy</label><input id="sy" type="number" step="0.1" value="1.2"></div>
+            </div>`;
+        } else if (algo === 'Rotation') {
+          extra = `
+            <div class="row">
+              <div><label>Angle (degrees)</label><input id="angle" type="number" value="45"></div>
+              <div></div>
+            </div>`;
+        } else if (algo === 'Shearing') {
+          extra = `
+            <div class="row">
+              <div><label>shx</label><input id="shx" type="number" step="0.1" value="0.6"></div>
+              <div><label>shy</label><input id="shy" type="number" step="0.1" value="0.2"></div>
+            </div>`;
+        } else if (algo === 'Reflection') {
+          extra = `
+            <label>Axis</label>
+            <select id="axis">
+              <option value="x">x-axis</option>
+              <option value="y">y-axis</option>
+              <option value="origin">origin</option>
+              <option value="y=x">y = x</option>
+            </select>
+            <div style="height:10px"></div>`;
+        }
+        controls.innerHTML = `
+          <label>Object points</label>
+          <textarea id="shapePts">15,15; 30,10; 45,22; 38,40; 18,35</textarea>
+          ${extra}
+          <div class="row">
+            <div><button onclick="runCurrent()">Apply</button></div>
+            <div><button class="secondary" onclick="resetView()">Clear</button></div>
+          </div>`;
+      }
+
+      else if (category === 'Clipping Algorithms') {
+        if (algo.includes('Cohen')) {
+          controls.innerHTML = `
+            <div class="row">
+              <div><label>x1</label><input id="x1" type="number" value="5"></div>
+              <div><label>y1</label><input id="y1" type="number" value="10"></div>
+            </div>
+            <div class="row">
+              <div><label>x2</label><input id="x2" type="number" value="90"></div>
+              <div><label>y2</label><input id="y2" type="number" value="55"></div>
+            </div>
+            <label>Clipping window: xmin,ymin,xmax,ymax</label>
+            <input id="clipRect" value="20,15,65,45" />
+            <div class="row">
+              <div><button onclick="runCurrent()">Apply</button></div>
+              <div><button class="secondary" onclick="resetView()">Clear</button></div>
+            </div>`;
+        } else {
+          controls.innerHTML = `
+            <label>Polygon points</label>
+            <textarea id="polyPts">8,12; 32,6; 70,18; 78,40; 50,55; 18,42</textarea>
+            <label>Clipping window: xmin,ymin,xmax,ymax</label>
+            <input id="clipRect" value="20,15,65,45" />
+            <div class="row">
+              <div><button onclick="runCurrent()">Apply</button></div>
+              <div><button class="secondary" onclick="resetView()">Clear</button></div>
+            </div>`;
+        }
+      }
+
+      else if (category === 'Hidden Surface Detection Algorithms') {
+        controls.innerHTML = `
+          <div class="row">
+            <div><label>Rotate X</label><input id="ax" type="number" value="-25"></div>
+            <div><label>Rotate Y</label><input id="ay" type="number" value="35"></div>
+          </div>
+          <div class="row">
+            <div><button onclick="runCurrent()">Apply</button></div>
+            <div><button class="secondary" onclick="resetView()">Clear</button></div>
+          </div>`;
+      }
+    }
+
+    function updateAlgorithms() {
+      stopAnimation();
+      algorithmSelect.innerHTML = '';
+      config[categorySelect.value].forEach(algo => {
+        const option = document.createElement('option');
+        option.value = algo;
+        option.textContent = algo;
+        algorithmSelect.appendChild(option);
+      });
+      renderControls();
+    }
+
+    function init() {
+      Object.keys(config).forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categorySelect.appendChild(option);
+      });
+      categorySelect.addEventListener('change', updateAlgorithms);
+      algorithmSelect.addEventListener('change', renderControls);
+      window.runCurrent = runCurrent;
+      window.resetView = resetView;
+      updateAlgorithms();
+      clearCanvas();
+    }
+
+    init();
+  </script>
+</body>
+</html>
