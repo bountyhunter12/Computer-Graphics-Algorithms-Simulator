@@ -64,8 +64,8 @@ This project was built as a **Computer Graphics sessional lab project**. It allo
 
 ### DDA Line Drawing Algorithm
 
-![DDA Line Drawing Algorithm UI](<img width="1849" height="886" alt="Screenshot 2026-03-31 024121" src="https://github.com/user-attachments/assets/4274b27b-ccbc-45f1-a844-7be05d8a6d29" />
-)
+<img width="1849" height="886" alt="Screenshot 2026-03-31 024121" src="https://github.com/user-attachments/assets/4274b27b-ccbc-45f1-a844-7be05d8a6d29" />
+
 
 ### Midpoint Circle Drawing Algorithm
 
